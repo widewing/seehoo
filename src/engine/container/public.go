@@ -5,7 +5,9 @@ import (
 )
 
 func Start(id string) {
-	
+	container := loadContainer(id)
+	mountContainer(container)
+	runStartScripts(container)
 }
 
 func Stop(id string) {

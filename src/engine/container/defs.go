@@ -17,14 +17,16 @@ type image struct {
 	name string
 	hashtag string
 	path string
-	baseImageTag string
+	parentHashTag string
+	configScript string
+	shell string
 	startScript string
+	configKeys []string
 }
 
 type config struct {
 	image *image
 	items []configItem
-	script string
 	files []fileInfo
 }
 

@@ -1,4 +1,4 @@
-package engine
+package service
 
 import (
     "fmt"
@@ -9,7 +9,7 @@ import (
 
 var stopServiceChan chan string = make(chan string)
 
-func startService() {
+func Start() {
     socket, err := net.Listen("tcp", "localhost:7777")
     defer func(){
     	socket.Close()

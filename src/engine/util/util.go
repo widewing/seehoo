@@ -4,7 +4,6 @@ import (
 	"io"
 	"os/exec"
 	"bufio"
-	"time"
 	log "github.com/cihub/seelog"
 )
 
@@ -60,14 +59,5 @@ func Execute(name string,args ...string) func(func(string),func(string)) error {
 }
 
 func Umount(busybox string,mount string) error {
-	var err error = nil
-	for i:=0;i<3;i++ {
-		err = ExecuteDefaultLogger(busybox,"umount",mount)
-		if err==nil { break }
-		log.Error("umount error: "+err.Error())
-		if i==2 { break }
-		log.Error("Retrying in 500ms")
-		time.Sleep(time.Duration(500)*time.Millisecond)
-	}
-	return err
+	return ExecuteDefaultLogger(busybox,"umount","-l",mount)
 }

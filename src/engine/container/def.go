@@ -3,25 +3,32 @@ import (
 	"time"
 )
 
+var imageHome string = "/images"
+var containerHome string = "/containers"
+
 type container struct {
-	id string
-	name string
-	createTime time.Time
-	lastStartTime time.Time
+	Id string	`json:"id"`
+	Info string	`json:"info"`
+	CreateTime time.Time	`json:"create_time"`
+	LastStartTime time.Time	`json:"last_start_time"`
+	TopImageHashtag string	`json:"top_image_hashtag"`
+	AllConfigs []configItem	`json:"configs"`
+	images []*image
+	configs []*config
 	status int
-	images []image
-	configs []config
 }
 
 type image struct {
-	name string
-	hashtag string
-	path string
-	parentHashTag string
-	configScript string
-	shell string
-	startScript string
-	configKeys []string
+	Name string	`json:"name"`
+	Hashtag string	`json:"hashtag"`
+	Filename string	`json:"filename"`
+	ImageType string `json:"type"`
+	ParentHashTag string	`json:"parent_hashtag"`
+	Shell string	`json:"shell"`
+	ConfigScript string	`json:"config_script"`
+	StartScript string	`json:"start_script"`
+	ConfigKeys []string	`json:"config_keys"`
+	mountPath string
 }
 
 type config struct {

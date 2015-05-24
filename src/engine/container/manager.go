@@ -2,7 +2,7 @@ package container
 
 import (
 	"engine/util"
-	"log"
+	log "github.com/cihub/seelog"
 )
 
 type imageRefs struct {
@@ -14,7 +14,7 @@ var images map[string]imageRefs = make(map[string]imageRefs)
 var containers map[string]*container = make(map[string]*container)
 
 func setupContainer(id string) error {
-	log.Println("Starting container "+id)
+	log.Info("Starting container "+id)
 	container,err := loadContainer(id)
 	if err != nil {return err}
 	mountContainer(container)
@@ -27,10 +27,10 @@ func setupContainer(id string) error {
 }
 
 func teardownContainer(id string) {
-	log.Println("Stopping container "+id)
+	log.Info("Stopping container "+id)
 	container,exists:=containers[id]
 	if !exists {
-		log.Println("Container not started")
+		log.Error("Container not started")
 		return
 	}
 	umountContainer(id)
@@ -60,7 +60,7 @@ func desocImage(image *image,container *container){
 	}
 	delete(imageRef.refs,container.Id)
 	if len(imageRef.refs) == 0 {
-		log.Printf("No container is using image %s, umount %s",image.Filename,image.mountPath)
+		log.Debug("No container is using image %s, umount %s",image.Filename,image.mountPath)
 		util.Umount("/bin/busybox",image.mountPath)
 		delete(images,image.Hashtag)
 	}

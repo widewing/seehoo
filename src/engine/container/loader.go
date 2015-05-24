@@ -3,12 +3,12 @@ package container
 import (
 	"io/ioutil"
 	"encoding/json"
-	"log"
 	"errors"
+	log "github.com/cihub/seelog"
 )
 
 func loadImage(hashtag string) (*image,error){
-	log.Println("Loading image: "+hashtag)
+	log.Info("Loading image: "+hashtag)
 	var image image
 	bytes,err := ioutil.ReadFile(imageHome+"/"+hashtag+".json")
 	if err != nil { return nil,err }
@@ -22,20 +22,20 @@ func loadConfig(container *container, image *image) (*config,error) {
 }
 
 func loadContainer(id string) (*container,error){
-	log.Println("Loading container "+id)
+	log.Info("Loading container "+id)
 	var container container
 	bytes,err := ioutil.ReadFile(containerHome+"/"+id+"/config.json")
 	if err != nil { 
-		log.Println("Cannot read config file for container "+id)
+		log.Error("Cannot read config file for container "+id)
 		return nil,err
 	}
 	err = json.Unmarshal(bytes,&container)
 	if err != nil {
-		log.Println("Cannot unmarshal config")
+		log.Error("Cannot unmarshal config")
 		return nil,err
 	}
 	if container.Id != id {
-		log.Println("Container id mismatch!")
+		log.Error("Container id mismatch!")
 		return nil,errors.New("Container id mismatch")
 	}
 	hashtag := container.TopImageHashtag

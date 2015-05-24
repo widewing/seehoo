@@ -2,15 +2,15 @@ package container
 
 import (
 	"os"
-	"log"
 	"engine/util"
+	log "github.com/cihub/seelog"
 )
 
 func mountImageFs(image *image) string {
 	mountPath := "/mnt/"+image.Hashtag
 	imagePath := imageHome + "/" + image.Filename
 	os.MkdirAll(mountPath,0755)
-	log.Printf("Mounting %s on %s",imagePath,mountPath)
+	log.Debug("Mounting %s on %s",imagePath,mountPath)
 	switch image.ImageType {
 		case "squashfs":mountSquashFs(imagePath,mountPath)
 		default: return ""
@@ -20,7 +20,7 @@ func mountImageFs(image *image) string {
 }
 
 func mountSquashFs(imagePath string,mountPath string) error {
-	log.Print("mounting SquashFS")
+	log.Debug("mounting SquashFS")
 	util.ExecuteDefaultLogger(
 		"/bin/squashfuse","-o","allow_other",imagePath, mountPath)
 	return nil
@@ -45,7 +45,7 @@ func mountOverlays(containerId string,paths []string) string {
 		if path=="" { continue }
 		args += ":"+path
 	}
-	log.Print("unionfs-fuse "+args)
+	log.Debug("unionfs-fuse "+args)
 	util.ExecuteDefaultLogger(
 		"/bin/unionfs-fuse","-o","cow,allow_other,exec,dev",args,mountPath)
 
@@ -53,29 +53,29 @@ func mountOverlays(containerId string,paths []string) string {
 }
 
 func mountContainer(container *container) string {
-	log.Println("Mounting container "+container.Id)
+	log.Info("Mounting container "+container.Id)
 	lvls := len(container.images)
 	paths := make([]string, lvls*2+1)
 	paths[0] = mountUserFs(container.Id)
 	for i,image := range container.images {
 		if image.mountPath=="" {
-			log.Println("Mounting image: "+image.Filename)
+			log.Info("Mounting image: "+image.Filename)
 			paths[i*2+1] = mountImageFs(image)
 		} else {
-			log.Println("Image already mounted: "+image.Filename)
+			log.Info("Image already mounted: "+image.Filename)
 			paths[i*2+1] = image.mountPath
 		}
-		log.Println("Mounting config for "+image.Filename)
+		log.Info("Mounting config for "+image.Filename)
 		paths[i*2+2] = mountConfigFs(container.Id,container.configs[i])
 	}
-	log.Println("Mounting unionfs for container "+container.Id)
+	log.Info("Mounting unionfs for container "+container.Id)
 	mountPath := mountOverlays(container.Id,paths)
 	mountMisc(mountPath)
 	return mountPath
 }
 
 func mountMisc(root string) {
-	log.Println("Mounting /dev,/sys,/proc at "+root)
+	log.Info("Mounting /dev,/sys,/proc at "+root)
 	os.MkdirAll(root+"/dev",0755)
 	util.ExecuteDefaultLogger("/bin/busybox","mount",
 		"-o","bind","/dev",root+"/dev")
@@ -91,7 +91,7 @@ func mountMisc(root string) {
 
 func umountContainer(id string) {
 	root := containerHome+"/"+id+"/root"
-	log.Println("Unmounting /dev,/sys,/proc at "+root)
+	log.Info("Unmounting /dev,/sys,/proc at "+root)
 	util.Umount("/bin/busybox",root+"/dev/pts")
 	util.Umount("/bin/busybox",root+"/dev")
 	util.Umount("/bin/busybox",root+"/proc")

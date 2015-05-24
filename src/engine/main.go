@@ -1,18 +1,19 @@
 package main
 
 import (
-    "fmt"
     "os"
     "engine/service"
     "syscall"
     "engine/config"
     "engine/util"
+    log "github.com/cihub/seelog"
 )
 
 var stopChan chan string = make(chan string)
 
 func main() {
-	fmt.Println("Hello, world")
+	defer log.Flush()
+	log.Info("Seehoo engine started")
 	jailSelf()
 	defer func(){
 		cleanup()

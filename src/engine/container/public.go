@@ -1,13 +1,13 @@
 package container
 
 import (
-	"log"
+	log "github.com/cihub/seelog"
 )
 
 func Start(id string) error {
 	err := setupContainer(id)
 	if err != nil {
-		log.Println(err.Error())
+		log.Error(err.Error())
 	}
 	return err
 }

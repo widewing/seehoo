@@ -16,6 +16,10 @@ func Stop(id string) {
 	teardownContainer(id)
 }
 
+func StopAll() {
+	teardownAll()
+}
+
 func Attach(id string,shell string) (in chan string,out chan string,err chan string) {
 	return nil,nil,nil
 }

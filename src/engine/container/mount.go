@@ -2,21 +2,22 @@ package container
 
 import (
 	"os"
+	"path"
+	"io/ioutil"
 	"engine/util"
 	log "github.com/cihub/seelog"
 )
 
-func mountImageFs(image *image) string {
+func mountImageFs(image *image) {
 	mountPath := "/mnt/"+image.Hashtag
-	imagePath := imageHome + "/" + image.Filename
+	imagePath := image.home + "/" + image.Filename
 	os.MkdirAll(mountPath,0755)
-	log.Debug("Mounting %s on %s",imagePath,mountPath)
+	log.Debugf("Mounting %s on %s\n",imagePath,mountPath)
 	switch image.ImageType {
 		case "squashfs":mountSquashFs(imagePath,mountPath)
-		default: return ""
+		default: return
 	}
 	image.mountPath = mountPath
-	return mountPath
 }
 
 func mountSquashFs(imagePath string,mountPath string) error {
@@ -26,75 +27,85 @@ func mountSquashFs(imagePath string,mountPath string) error {
 	return nil
 }
 
-func mountConfigFs(containerId string, config *config) string {
-	
-	return ""
+func mountConfigFs(container *container, config *config) {
+	log.Debug("mounting Config for "+config.image.Hashtag)
+	mountPath := container.home+"/config_"+config.image.Hashtag
+	os.MkdirAll(mountPath,0755)
+	err:=util.ExecuteDefaultLogger("/bin/busybox","mount","-t","tmpfs","tmpfs",mountPath)
+	if err!=nil {return}
+	for _,f:=range config.files{
+		os.MkdirAll(path.Dir(mountPath+f.path),0755)
+		ioutil.WriteFile(mountPath+f.path,f.content,f.mode)
+		os.Chown(mountPath+f.path,f.uid,f.gid)
+	}
+	util.ExecuteDefaultLogger("/bin/busybox","mount","-o","remount,ro",mountPath,mountPath)
+	config.mountPath = mountPath
 }
 
-func mountUserFs(containerId string) string {
-	mountPath := containerHome+"/"+containerId+"/data"
+func mountUserFs(container *container) {
+	mountPath := container.home+"/data"
 	os.MkdirAll(mountPath,0755)
-	return mountPath
+	container.dataPath = mountPath
 }
 
-func mountOverlays(containerId string,paths []string) string {
-	mountPath := containerHome+"/"+containerId+"/root"
+func mountOverlays(container *container) {
+	mountPath := container.home+"/root"
 	os.MkdirAll(mountPath,0755)
-	args := paths[0]+"=rw"
-	for _,path := range paths[1:] {
-		if path=="" { continue }
-		args += ":"+path
+	args := container.dataPath+"=rw"
+	for i,image := range container.images {
+		args+=":"+container.configs[i].mountPath
+		args+=":"+image.mountPath
 	}
 	log.Debug("unionfs-fuse "+args)
 	util.ExecuteDefaultLogger(
 		"/bin/unionfs-fuse","-o","cow,allow_other,exec,dev",args,mountPath)
-
-	return mountPath
+	container.rootPath = mountPath
 }
 
-func mountContainer(container *container) string {
+func mountMisc(container *container) {
+	log.Info("Mounting /dev,/sys,/proc for container "+container.Id)
+	os.MkdirAll(container.rootPath+"/dev",0755)
+	util.ExecuteDefaultLogger("/bin/busybox","mount",
+		"-o","bind","/dev",container.rootPath+"/dev")
+	os.MkdirAll(container.rootPath+"/sys",0755)
+	util.ExecuteDefaultLogger("/bin/busybox","mount",
+		"-t","sysfs","sysfs",container.rootPath+"/sys")
+	os.MkdirAll(container.rootPath+"/proc",0755)
+	util.ExecuteDefaultLogger("/bin/busybox","mount",
+		"-t","proc","proc",container.rootPath+"/proc")
+	util.ExecuteDefaultLogger("/bin/busybox","mount",
+		"-t","devpts","devpts",container.rootPath+"/dev/pts")
+}
+
+func mountContainer(container *container) {
 	log.Info("Mounting container "+container.Id)
-	lvls := len(container.images)
-	paths := make([]string, lvls*2+1)
-	paths[0] = mountUserFs(container.Id)
+	container.home = containerHome + "/" + container.Id
+	mountUserFs(container)
 	for i,image := range container.images {
+		log.Info("Mounting config for "+image.Filename)
+		mountConfigFs(container,container.configs[i])
 		if image.mountPath=="" {
 			log.Info("Mounting image: "+image.Filename)
-			paths[i*2+1] = mountImageFs(image)
+			mountImageFs(image)
 		} else {
 			log.Info("Image already mounted: "+image.Filename)
-			paths[i*2+1] = image.mountPath
 		}
-		log.Info("Mounting config for "+image.Filename)
-		paths[i*2+2] = mountConfigFs(container.Id,container.configs[i])
 	}
 	log.Info("Mounting unionfs for container "+container.Id)
-	mountPath := mountOverlays(container.Id,paths)
-	mountMisc(mountPath)
-	return mountPath
+	mountOverlays(container)
+	mountMisc(container)
 }
 
-func mountMisc(root string) {
-	log.Info("Mounting /dev,/sys,/proc at "+root)
-	os.MkdirAll(root+"/dev",0755)
-	util.ExecuteDefaultLogger("/bin/busybox","mount",
-		"-o","bind","/dev",root+"/dev")
-	os.MkdirAll(root+"/sys",0755)
-	util.ExecuteDefaultLogger("/bin/busybox","mount",
-		"-t","sysfs","sysfs",root+"/sys")
-	os.MkdirAll(root+"/proc",0755)
-	util.ExecuteDefaultLogger("/bin/busybox","mount",
-		"-t","proc","proc",root+"/proc")
-	util.ExecuteDefaultLogger("/bin/busybox","mount",
-		"-t","devpts","devpts",root+"/dev/pts")
-}
-
-func umountContainer(id string) {
-	root := containerHome+"/"+id+"/root"
+func umountContainer(container *container) {
+	root := containerHome+"/"+container.Id+"/root"
 	log.Info("Unmounting /dev,/sys,/proc at "+root)
 	util.Umount("/bin/busybox",root+"/dev/pts")
 	util.Umount("/bin/busybox",root+"/dev")
 	util.Umount("/bin/busybox",root+"/proc")
 	util.Umount("/bin/busybox",root+"/sys")
 	util.Umount("/bin/busybox",root)
+	for _,config := range container.configs {
+		if config.mountPath == "" { continue }
+		util.Umount("/bin/busybox",config.mountPath)
+	}
 }

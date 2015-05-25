@@ -33,10 +33,17 @@ func teardownContainer(id string) {
 		log.Error("Container not started")
 		return
 	}
-	umountContainer(id)
+	killProcs(container)
+	umountContainer(container)
 	delete(containers,id)
 	for _,image:=range container.images {
 		desocImage(image,container)
+	}
+}
+
+func teardownAll() {
+	for _,container := range containers {
+		teardownContainer(container.Id)
 	}
 }
 

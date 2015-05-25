@@ -1,6 +1,7 @@
 package container
 import (
 	"time"
+	"os"
 )
 
 var imageHome string = "/images"
@@ -15,6 +16,9 @@ type container struct {
 	AllConfigs []configItem	`json:"configs"`
 	images []*image
 	configs []*config
+	home string
+	rootPath string
+	dataPath string
 	status int
 }
 
@@ -22,19 +26,22 @@ type image struct {
 	Name string	`json:"name"`
 	Hashtag string	`json:"hashtag"`
 	Filename string	`json:"filename"`
-	ImageType string `json:"type"`
+	ImageType string	`json:"type"`
 	ParentHashTag string	`json:"parent_hashtag"`
 	Shell string	`json:"shell"`
-	ConfigScript string	`json:"config_script"`
-	StartScript string	`json:"start_script"`
 	ConfigKeys []string	`json:"config_keys"`
+	home string
+	configScript string
+	startScript string
+	stopScript string
 	mountPath string
 }
 
 type config struct {
 	image *image
+	mountPath string
 	items []configItem
-	files []fileInfo
+	files map[string]fileInfo
 }
 
 type configItem struct {
@@ -43,9 +50,9 @@ type configItem struct {
 }
 
 type fileInfo struct {
-	content string
+	content []byte
 	path string
-	mode string
+	mode os.FileMode
 	uid int
 	gid int
 }

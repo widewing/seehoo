@@ -4,6 +4,7 @@ import (
     "os"
     "engine/service"
     "syscall"
+    "engine/container"
     "engine/config"
     "engine/util"
     log "github.com/cihub/seelog"
@@ -40,6 +41,8 @@ func jailSelf() {
 }
 
 func cleanup() {
+	log.Info("Cleaning up...")
+	container.StopAll()
 	util.Umount("/bin/busybox","/sys")
 	util.Umount("/bin/busybox","/proc")
 	util.Umount("/bin/busybox","/dev/pts")

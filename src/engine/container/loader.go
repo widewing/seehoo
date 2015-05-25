@@ -10,15 +10,21 @@ import (
 func loadImage(hashtag string) (*image,error){
 	log.Info("Loading image: "+hashtag)
 	var image image
-	bytes,err := ioutil.ReadFile(imageHome+"/"+hashtag+".json")
+	image.home = imageHome+"/"+hashtag
+	bytes,err := ioutil.ReadFile(image.home+"/image.json")
 	if err != nil { return nil,err }
 	err = json.Unmarshal(bytes,&image)
 	if err != nil {return nil,err}
+	image.configScript = image.home+"/config.sh"
+	image.startScript = image.home+"/start.sh"
+	image.stopScript = image.home+"/stop.sh"
 	return &image,nil
 }
 
 func loadConfig(container *container, image *image) (*config,error) {
-	return nil,nil
+	var config config
+	config.image = image
+	return &config,nil
 }
 
 func loadContainer(id string) (*container,error){
@@ -47,6 +53,13 @@ func loadContainer(id string) (*container,error){
 		config,_ := loadConfig(&container,image)
 		container.configs = append(container.configs,config)
 		hashtag = image.ParentHashTag
+	}
+	lastShell:="/bin/sh"
+	for i:=len(container.images)-1;i>=0;i-- {
+		if container.images[i].Shell=="" {
+			container.images[i].Shell = lastShell
+		}
+		lastShell = container.images[i].Shell
 	}
 	return &container,nil
 }

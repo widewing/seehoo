@@ -58,6 +58,6 @@ func Execute(name string,args ...string) func(func(string),func(string)) error {
 	}
 }
 
-func Umount(busybox string,mount string) error {
-	return ExecuteDefaultLogger(busybox,"umount","-l",mount)
+func Umount(mount string) error {
+	return ExecuteDefaultLogger("/bin/busybox","umount","-l",mount)
 }

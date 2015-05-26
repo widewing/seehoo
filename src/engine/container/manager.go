@@ -68,7 +68,7 @@ func desocImage(image *image,container *container){
 	delete(imageRef.refs,container.Id)
 	if len(imageRef.refs) == 0 {
 		log.Debug("No container is using image %s, umount %s",image.Filename,image.mountPath)
-		util.Umount("/bin/busybox",image.mountPath)
+		util.Umount(image.mountPath)
 		delete(images,image.Hashtag)
 	}
 }

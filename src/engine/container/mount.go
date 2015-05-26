@@ -99,13 +99,13 @@ func mountContainer(container *container) {
 func umountContainer(container *container) {
 	root := containerHome+"/"+container.Id+"/root"
 	log.Info("Unmounting /dev,/sys,/proc at "+root)
-	util.Umount("/bin/busybox",root+"/dev/pts")
-	util.Umount("/bin/busybox",root+"/dev")
-	util.Umount("/bin/busybox",root+"/proc")
-	util.Umount("/bin/busybox",root+"/sys")
-	util.Umount("/bin/busybox",root)
+	util.Umount(root+"/dev/pts")
+	util.Umount(root+"/dev")
+	util.Umount(root+"/proc")
+	util.Umount(root+"/sys")
+	util.Umount(root)
 	for _,config := range container.configs {
 		if config.mountPath == "" { continue }
-		util.Umount("/bin/busybox",config.mountPath)
+		util.Umount(config.mountPath)
 	}
 }

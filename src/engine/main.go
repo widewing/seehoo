@@ -43,8 +43,8 @@ func jailSelf() {
 func cleanup() {
 	log.Info("Cleaning up...")
 	container.StopAll()
-	util.Umount("/bin/busybox","/sys")
-	util.Umount("/bin/busybox","/proc")
-	util.Umount("/bin/busybox","/dev/pts")
-	util.Umount("/bin/busybox","/dev")
+	util.Umount("/sys")
+	util.Umount("/proc")
+	util.Umount("/dev/pts")
+	util.Umount("/dev")
 }

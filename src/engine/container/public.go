@@ -12,8 +12,12 @@ func Start(id string) error {
 	return err
 }
 
-func Stop(id string) {
-	teardownContainer(id)
+func Stop(id string) error {
+	err := teardownContainer(id)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	return err
 }
 
 func StopAll() {

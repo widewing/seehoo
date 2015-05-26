@@ -47,17 +47,17 @@ func Start() {
     	}
     }
 }
-
-var functions map[string]func([]string) = make(map[string]func([]string))
+type handler func([]string)string
+var functions map[string]handler = make(map[string]handler)
 
 func handleSession(conn net.Conn) {
     defer func() {
     	conn.Close()
     }()
     scanner := bufio.NewScanner(conn)
-    for {
-    	scanner.Scan()
-    	line := scanner.Text()
+    for scanner.Scan(){
+    	line := strings.TrimSpace(scanner.Text())
+    	if line=="" { continue }
     	log.Info("Received command: "+line)
     	parts := strings.Fields(line)
     	cmd := parts[0]
@@ -69,7 +69,11 @@ func handleSession(conn net.Conn) {
     		return
     	} else {
     		if fn,found := functions[cmd];found{
-    			fn(args)
+    			ret := fn(args)
+    			conn.Write([]byte(ret))
+    			if !strings.HasSuffix(ret,"\n") {
+    				conn.Write([]byte("\n"))
+    			}
     		} else {
     			log.Info("Undefined command: "+cmd)
     		}
@@ -77,7 +81,7 @@ func handleSession(conn net.Conn) {
     }
 }
 
-func registerCommand(cmd string,fn func([]string)) bool{
+func registerCommand(cmd string,fn handler) bool{
 	functions[cmd] = fn
 	return true
 }

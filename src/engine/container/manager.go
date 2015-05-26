@@ -2,6 +2,7 @@ package container
 
 import (
 	"engine/util"
+	"errors"
 	log "github.com/cihub/seelog"
 )
 
@@ -26,12 +27,12 @@ func setupContainer(id string) error {
 	return nil
 }
 
-func teardownContainer(id string) {
+func teardownContainer(id string) error {
 	log.Info("Stopping container "+id)
 	container,exists:=containers[id]
 	if !exists {
 		log.Error("Container not started")
-		return
+		return errors.New("Container not started")
 	}
 	killProcs(container)
 	umountContainer(container)
@@ -39,6 +40,7 @@ func teardownContainer(id string) {
 	for _,image:=range container.images {
 		desocImage(image,container)
 	}
+	return nil
 }
 
 func teardownAll() {

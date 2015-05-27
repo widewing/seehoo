@@ -7,15 +7,22 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-var defaultLogStdout func(string) = func(text string) {
+var LogStdout func(string) = func(text string) {
 	log.Debug("stdout: " + text)
 }
-var defaultLogStderr func(string) = func(text string) {
+var LogStderr func(string) = func(text string) {
 	log.Error("stderr: " + text)
 }
 
-func ExecuteDefaultLogger(name string, args ...string) error {
-	return Execute(name,args...)(defaultLogStdout,defaultLogStderr)
+func LogStream(stream io.Reader,logFunc func(string)){
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		logFunc(scanner.Text())
+	}
+}
+
+func ExecuteLogger(name string, args ...string) error {
+	return Execute(name,args...)(LogStdout,LogStderr)
 }
 
 func Execute(name string,args ...string) func(func(string),func(string)) error {
@@ -26,38 +33,32 @@ func Execute(name string,args ...string) func(func(string),func(string)) error {
 		if err:=p.Start();err!=nil{
 			return err
 		}
-		log := func(pipe io.Reader,logger func(string)){
-			scanner := bufio.NewScanner(stdoutPipe)
-			for scanner.Scan() {
-				logger(scanner.Text())
-			}
-		}
-		event := make(chan int)
-		stdoutOk := false
-		stderrOk := false
-		if logStdout!=nil{
-			go func(){
-				log(stdoutPipe,logStdout)
-				stdoutOk = true
-				event<-1
-			}()
-		}
-		if logStderr!=nil{
-			go func(){
-				log(stderrPipe,logStderr)
-				stderrOk = true
-				event<-2
-			}()
-		}
-		for !(stdoutOk&&stderrOk){
-			select {
-				case <-event:
-			}
-		}
+		Wait(
+			func(){LogStream(stdoutPipe,logStdout)},
+			func(){LogStream(stderrPipe,logStderr)},
+		)
 		return p.Wait()
 	}
 }
 
 func Umount(mount string) error {
-	return ExecuteDefaultLogger("/bin/busybox","umount","-l",mount)
+	return ExecuteLogger("/bin/busybox","umount","-l",mount)
+}
+
+func Wait(funcs ...func()) {
+	n := len(funcs)
+	waitChan := make(chan int, 1)
+	for i,f := range funcs {
+		go func(){
+			f()
+			waitChan <- i
+		}()
+	}
+	for {
+		select {
+			case <-waitChan: 
+				n-=1
+		}
+		if n==0 { break }
+	}
 }

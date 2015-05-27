@@ -13,7 +13,7 @@ type container struct {
 	CreateTime time.Time	`json:"create_time"`
 	LastStartTime time.Time	`json:"last_start_time"`
 	TopImageHashtag string	`json:"top_image_hashtag"`
-	AllConfigs []configItem	`json:"configs"`
+	AllConfigs map[string]string	`json:"configs"`
 	images []*image
 	configs []*config
 	home string
@@ -29,7 +29,7 @@ type image struct {
 	ImageType string	`json:"type"`
 	ParentHashTag string	`json:"parent_hashtag"`
 	Shell string	`json:"shell"`
-	ConfigKeys []string	`json:"config_keys"`
+	ConfigItems []configItem	`json:"configs"`
 	home string
 	configScript string
 	startScript string
@@ -37,16 +37,18 @@ type image struct {
 	mountPath string
 }
 
+type configItem struct {
+	Key string 	`json:"key"`	
+	Type string `json:"type"`
+	Default string `json:"default"`
+	Choices []string `json:"choices"`
+}
+
 type config struct {
 	image *image
 	mountPath string
-	items []configItem
-	files map[string]fileInfo
-}
-
-type configItem struct {
-	key string
-	value string
+	items map[string]string
+	files map[string]*fileInfo
 }
 
 type fileInfo struct {

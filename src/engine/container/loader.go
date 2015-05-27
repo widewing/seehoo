@@ -24,6 +24,12 @@ func loadImage(hashtag string) (*image,error){
 func loadConfig(container *container, image *image) (*config,error) {
 	var config config
 	config.image = image
+	config.items = make(map[string]string)
+	for _,configItem := range image.ConfigItems {
+		value,ok := container.AllConfigs[configItem.Key]
+		if !ok { value = configItem.Default }
+		config.items[configItem.Key] = value
+	}
 	return &config,nil
 }
 

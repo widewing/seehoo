@@ -18,7 +18,8 @@ func setupContainer(id string) error {
 	log.Info("Starting container "+id)
 	container,err := loadContainer(id)
 	if err != nil {return err}
-	mountContainer(container)
+	err = mountContainer(container)
+	if err != nil {return err}
 	runStartScripts(container)
 	containers[id]=container
 	for _,image := range container.images {
@@ -69,7 +70,7 @@ func desocImage(image *image,container *container){
 	}
 	delete(imageRef.refs,container.Id)
 	if len(imageRef.refs) == 0 {
-		log.Debug("No container is using image %s, umount %s",image.Filename,image.mountPath)
+		log.Debugf("No container is using image %s, umount %s",image.Filename,image.mountPath)
 		util.Umount(image.mountPath)
 		delete(images,image.Hashtag)
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
     "os"
+    "os/signal"
     "engine/service"
     "syscall"
     "engine/container"
@@ -21,11 +22,22 @@ func main() {
 	}
 	defer log.Flush()
 	log.Info("Seehoo engine started")
+	util.ExecuteLogger("sh","-c","echo Executor is ready with logger")
 	jailSelf()
 	defer func(){
 		cleanup()
 	}()
-	service.Start()
+	util.WaitFirst(
+		service.Run,
+		waitSigint,
+	)
+}
+
+func waitSigint(){
+	c := make(chan os.Signal,1)
+	signal.Notify(c,os.Interrupt)
+	signal.Notify(c,syscall.SIGTERM)
+	<- c
 }
 
 func jailSelf() {

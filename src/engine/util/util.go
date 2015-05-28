@@ -45,7 +45,7 @@ func Umount(mount string) error {
 	return ExecuteLogger("/bin/busybox","umount","-l",mount)
 }
 
-func Wait(funcs ...func()) {
+func WaitLast(funcs ...func()) {
 	n := len(funcs)
 	waitChan := make(chan int, 1)
 	for i,f := range funcs {
@@ -62,3 +62,16 @@ func Wait(funcs ...func()) {
 		if n==0 { break }
 	}
 }
+
+func WaitFirst(funcs ...func()) {
+	waitChan := make(chan int, 1)
+	for i,f := range funcs {
+		go func(){
+			f()
+			waitChan <- i
+		}()
+	}
+	<-waitChan
+}
+
+var Wait = WaitLast

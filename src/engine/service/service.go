@@ -9,7 +9,7 @@ import (
 
 var stopServiceChan chan string = make(chan string)
 
-func Start() {
+func Run() {
     socket, err := net.Listen("tcp", "127.0.0.1:7777")
     if err!=nil {
     	log.Error("Cannot start TCP server")
